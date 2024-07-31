@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 // Import images
@@ -68,17 +68,75 @@ function App() {
   let api_key = "d62ce3a1bf1ab725a64320d2f2d1d110";
   const [img, setImg] = useState(drezzle);
   const [temp, setTemp] = useState(0);
-  const [city, setCity] = useState("Chennai");
+  const [city, setCity] = useState("Colombo");
   const [country, setCountry] = useState("IN");
   const [lat, setLat] = useState(0);
   const [log, setLog] = useState(0);
   const [humidity, setHumidity] = useState(0);
   const [wind, setWind] = useState(0);
-  const [text, setText] = useState("Cheenai");
+  const [text, setText] = useState("Colombo");
+  const [loading, setLoading] = useState(false);
+  const [cityNotFound, setCityNotFound] = useState(false);
+
+  useEffect(() => {
+    search();
+    return () => {};
+  }, []);
+
+  const weatherIconMap = {
+    "01d": clear,
+    "01n": clear,
+    "02d": cloud,
+    "02n": cloud,
+    "03d": cloud,
+    "03n": cloud,
+    "04d": cloud,
+    "04n": cloud,
+    "09d": rain,
+    "09n": rain,
+    "10d": rain,
+    "10n": rain,
+    "11d": rain,
+    "11n": rain,
+    "13d": snow,
+    "13n": snow,
+    "50d": wind,
+    "50n": wind,
+  };
 
   const search = async () => {
-    let url = `https://api.openweathermap.org/data/2.5/weather?q=Chennai&appid=${api_key}&units=metric`;
+    let url = `https://api.openweathermap.org/data/2.5/weather?q=${text}&appid=${api_key}&units=metric`;
+
+    try {
+      let res = await fetch(url);
+      let data = await res.json();
+      // console.log(data);
+      if (data.code === "404") {
+        console.log("City not found");
+        setCityNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      setHumidity(data.main.humidity);
+      setWind(data.wind.speed);
+      setTemp(Math.floor(data.main.temp));
+      setCity(data.name);
+      setCountry(data.sys.country);
+      setLat(data.coord.lat);
+      setLog(data.coord.lon);
+      const weatherIcon = data.weather[0].icon;
+      setImg(weatherIconMap[weatherIcon] || drezzle);
+      setCityNotFound(false);
+      console.log(data);
+    } catch (error) {
+      console.log("The error is :", error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Rest of the code...
 
   const handleCity = (e) => {
     setText(e.target.value);
@@ -89,7 +147,7 @@ function App() {
       // setCity(text);
       search();
     }
-  }
+  };
 
   return (
     <>
@@ -104,7 +162,7 @@ function App() {
             onKeyDown={handleKeyDown}
           />
           <div className="search-icon">
-            <img src={loupe} alt="search-icon" onClick={()=>search()} />
+            <img src={loupe} alt="search-icon" onClick={() => search()} />
           </div>
         </div>
         <WeatherDetails
@@ -135,4 +193,6 @@ WeatherDetails.propTypes = {
   country: PropTypes.string.isRequired,
   lat: PropTypes.number.isRequired,
   long: PropTypes.number.isRequired,
+  humidity: PropTypes.number.isRequired,
+  wind: PropTypes.number.isRequired,
 };
